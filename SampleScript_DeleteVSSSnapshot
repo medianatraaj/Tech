@@ -1,0 +1,49 @@
+import json
+import boto3
+import datetime
+import dateutil
+from datetime import datetime, timedelta
+from datetime import date
+from dateutil import parser
+import pprint
+
+client = boto3.client('ec2')
+ec2 = boto3.resource('ec2')
+
+def lambda_handler(event, context):
+   date_object2 = datetime.utcnow()
+   date_object3 = datetime.strftime(date_object2,"%Y-%m-%d")
+   dt1 = dateutil.parser.parse(date_object3).date()
+   response = client.describe_snapshots(Filters=[
+                                                    {
+                                                        'Name': 'tag:Snapshot',
+                                                        'Values': ['VSS']
+                                                        
+                                                    }
+                                                    
+                                                ])
+   snapshot_ids = []
+   startt_time = []
+   date1 = []
+   
+   for i in response['Snapshots']:
+      startt_time = i['StartTime']
+      date_object1 = datetime.strftime(startt_time,"%Y-%m-%d")
+      dt2 = dateutil.parser.parse(date_object1).date()
+      date_diff = dt1 - dt2
+      
+      if (date_diff.days == 0):
+          volume_ids = i['VolumeId']
+          response1 = client.describe_snapshots(Filters=[{'Name': 'volume-id','Values': [volume_ids]}])
+          snap1=[]
+          for i in response1['Snapshots']:
+            snap1.append(i['SnapshotId'])
+          if len(snap1) > 1:
+            for i in response1['Snapshots']:
+                starttt_time = i['StartTime']
+                date_object11 = datetime.strftime(starttt_time,"%Y-%m-%d")
+                dt3 = dateutil.parser.parse(date_object11).date()
+                date_diff = dt1 - dt3
+                if (date_diff.days >= 1):
+                    client.delete_snapshot(SnapshotId=i['SnapshotId'])
+                    print ("Delete Snapshots: " + i['SnapshotId'])

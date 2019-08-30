@@ -1,0 +1,48 @@
+---
+- hosts: nokia
+  become: true
+  gather_facts: no
+
+  pre_tasks:
+    - raw: apt-get install -y python-simplejson
+
+  tasks:
+    - name: Upgrade system
+      apt: upgrade=dist update_cache=yes
+
+    - name: Install nginx
+      apt: name=nginx state=latest
+
+    - name: create nokia directory
+      file: name=/var/www/nokia state=directory
+
+    - name: Remove default nginx config
+      file: name=/etc/nginx/sites-enabled/default state=absent
+
+    - name: Copy ssl.pem cert to the directory
+      s3_sync:
+        bucket: nokia_template/{{domainname}}.pem
+        file_root: /etc/nokia/ssl/
+    
+    - name: Copy web files to the directory
+      s3_sync:
+        bucket: nokia_template/web/*
+        file_root: /var/www/nokia
+    
+    - name: Copy ssl.pem cert to the directory
+      s3_sync:
+        bucket: nokia_template/{{domainname}}.key
+        file_root: /etc/nokia/ssl/
+    
+    - name: Reload nginx to activate nokia site
+      service: name=nginx state=restarted
+
+    - name: Install nginx site for specified site
+      s3_sync:
+        bucket: nokia_template/nginx-test.v2
+        file_root: /etc/nginx/sites-enabled/nokia
+      
+    - name: Reload nginx to activate specified site
+      service: name=nginx state=restarted
+
+    

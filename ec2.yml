@@ -1,0 +1,99 @@
+ {
+ "Description": "Creating an ec2 instance - Technical Assessment",
+ "Parameters": {
+    "KeyName": {
+        "Description": "Key Pair name",
+        "Type": "AWS::EC2::KeyPair::KeyName",
+        "Default": "xxx-xxx"
+    },
+    "VPC": {
+        "Type": "AWS::EC2::VPC::Id",
+        "Default":"vpc-xxxxxx"
+    },
+    "Subnet":{
+        "Type": "AWS::EC2::Subnet::Id",
+        "Default": "Subnet-xxxxx"
+    },
+    "InstanceType": {
+        "Description": "Select one of the possible instance types",
+        "Type": "String",
+        "Default": "t2.micro",
+        "AllowedValues": ["t2.micro"]
+    },
+    "IamInstanceProfileName": {
+        "Description": "Select one of the possible instance types",
+        "Type": "String",
+        "Default": "AllowSSMRole",
+    },
+    "SecurityGroup":{
+         "Type": "AWS::EC2::SecurityGroup::Id",
+         "Default" : "givesecuritygroupid",
+         "AllowedValues": ["sg-xxxxx"]
+    } 
+},
+"Resources":{
+    "Server": {
+        "Type": "AWS::EC2::Instance",
+        "Properties": {
+            "ImageId": "ami-098789xxxxxxxxx",
+            "InstanceType": {"Ref": "InstanceType"},
+            "KeyName": {"Ref": "KeyName"},
+            "SecurityGroupIds": [{"Ref": "SecurityGroup"}],
+            "SubnetId": {"Ref": "Subnet"}
+			"IamInstanceProfile" :{"Ref":"IamInstanceProfileName" },
+            "UserData": { "Fn::Base64" : { "Fn::Join" : ["", [
+						"#!/bin/bash -xe\n",
+						"# create mount point directory\n",
+						"mkdir /mnt/xvdh\n",
+						"# create ext4 filesystem on new volume\n",    
+						"mkfs -t ext4 /dev/xvdh\n",
+						"# add an entry to fstab to mount volume during boot\n",
+						"echo \"/dev/xvdh       /mnt/xvdh   ext4    defaults,nofail 0       2\" >> /etc/fstab\n",
+						"# mount the volume on current boot\n",
+						"mount -a\n"
+			]]}}
+			"Tags" : [ {
+					"Key" : "InsName",
+					"Value" : "BackupIns"
+		} ]
+		}
+    },
+	"MyVolume" : {
+      "Type" : "AWS::EC2::Volume",
+      "Properties" : {
+        "Size" : "1",
+		"VolumeType" : "gp2",
+		"Encrypted" : "true",
+        "AvailabilityZone" :  { "Fn::GetAtt" : [ "Server", "AvailabilityZone" ] },,
+		"Tags" : [ {
+         "Key" : "VolName",
+         "Value" : "BackupDrive"
+      } ]
+      }
+    },
+	 "attachment" : {
+      "Type" : "AWS::EC2::VolumeAttachment",
+      "Properties" : {
+        "InstanceId" : { "Ref" : "Server" },
+        "VolumeId"  : { "Ref" : "MyVolume" },
+        "Device" : "/dev/sdh"
+      }
+    }
+	"IPAddress" : {
+      "Type" : "AWS::EC2::EIP"
+    },
+    "IPAssoc" : {
+      "Type" : "AWS::EC2::EIPAssociation",
+      "Properties" : {
+        "InstanceId" : { "Ref" : "Server" },
+        "EIP" : { "Ref" : "IPAddress" }
+      }
+    }
+},
+"Outputs": {
+    "PublicName": {
+        "Value": {"Fn::GetAtt": ["Server", "PublicDnsName"]},
+        "Description": "Public name (connect via SSH)"
+    }   
+ }
+}
