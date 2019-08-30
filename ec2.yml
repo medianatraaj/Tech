@@ -40,38 +40,24 @@
             "KeyName": {"Ref": "KeyName"},
             "SecurityGroupIds": [{"Ref": "SecurityGroup"}],
             "SubnetId": {"Ref": "Subnet"}
-			"IamInstanceProfile" :{"Ref":"IamInstanceProfileName" },
+            "IamInstanceProfile" :{"Ref":"IamInstanceProfileName" },
             "UserData": { "Fn::Base64" : { "Fn::Join" : ["", [
-						"#!/bin/bash -xe\n",
-						"# create mount point directory\n",
-						"mkdir /mnt/xvdh\n",
-						"# create ext4 filesystem on new volume\n",    
-						"mkfs -t ext4 /dev/xvdh\n",
-						"# add an entry to fstab to mount volume during boot\n",
-						"echo \"/dev/xvdh       /mnt/xvdh   ext4    defaults,nofail 0       2\" >> /etc/fstab\n",
-						"# mount the volume on current boot\n",
-						"mount -a\n"
-			]]}}
-			"Tags" : [ {
-					"Key" : "InsName",
-					"Value" : "BackupIns"
-		} ]
-		}
+						
     },
-	"MyVolume" : {
+    "MyVolume" : {
       "Type" : "AWS::EC2::Volume",
       "Properties" : {
         "Size" : "1",
-		"VolumeType" : "gp2",
-		"Encrypted" : "true",
+        "VolumeType" : "gp2",
+        "Encrypted" : "true",
         "AvailabilityZone" :  { "Fn::GetAtt" : [ "Server", "AvailabilityZone" ] },,
-		"Tags" : [ {
+        "Tags" : [ {
          "Key" : "VolName",
          "Value" : "BackupDrive"
       } ]
       }
     },
-	 "attachment" : {
+    "attachment" : {
       "Type" : "AWS::EC2::VolumeAttachment",
       "Properties" : {
         "InstanceId" : { "Ref" : "Server" },
@@ -79,7 +65,7 @@
         "Device" : "/dev/sdh"
       }
     }
-	"IPAddress" : {
+    "IPAddress" : {
       "Type" : "AWS::EC2::EIP"
     },
     "IPAssoc" : {
